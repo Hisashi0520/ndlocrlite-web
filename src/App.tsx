@@ -5,6 +5,8 @@ import { useI18n } from './hooks/useI18n'
 import { useOCRWorker } from './hooks/useOCRWorker'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { useResultCache } from './hooks/useResultCache'
+import { useGoogleAuth } from './hooks/useGoogleAuth'
+import { useGoogleDriveBatch } from './hooks/useGoogleDriveBatch'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
 import { FileDropZone } from './components/upload/FileDropZone'
@@ -16,6 +18,7 @@ import { ResultActions } from './components/results/ResultActions'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
 import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
+import { BatchFromDrivePanel } from './components/gdrive/BatchFromDrivePanel'
 import { imageDataToDataUrl } from './utils/imageLoader'
 import './App.css'
 
@@ -44,6 +47,9 @@ export default function App() {
   const { isReady, jobState, processImage, processRegion, resetState } = useOCRWorker()
   const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
+  const { authState: googleAuthState, isConfigured: isGoogleConfigured, signIn: googleSignIn, signOut: googleSignOut } = useGoogleAuth()
+  const { batchState, startBatch, cancelBatch, resetBatch } = useGoogleDriveBatch(processImage)
+  const [showBatchDrive, setShowBatchDrive] = useState(false)
 
   const [sessionResults, setSessionResults] = useState<OCRResult[]>([])
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
@@ -224,6 +230,10 @@ export default function App() {
         onLogoClick={handleClear}
         onStartOCR={() => setIsReadyToProcess(true)}
         canStartOCR={hasPendingImages}
+        googleAuthState={googleAuthState}
+        onGoogleSignIn={googleSignIn}
+        onGoogleSignOut={googleSignOut}
+        isGoogleConfigured={isGoogleConfigured}
       />
 
       <main className="main">
@@ -239,6 +249,17 @@ export default function App() {
                 {lang === 'ja' ? 'サンプルを試す' : 'Try Sample'}
               </button>
             </div>
+            {isGoogleConfigured && (
+              <button
+                className="btn btn-drive"
+                onClick={async () => {
+                  if (!googleAuthState.isSignedIn) await googleSignIn()
+                  setShowBatchDrive(true)
+                }}
+              >
+                {lang === 'ja' ? 'Google ドライブからバッチOCR' : 'Batch OCR from Google Drive'}
+              </button>
+            )}
           </section>
         )}
 
@@ -443,7 +464,13 @@ export default function App() {
 
                 <div className="result-right">
                   <ResultPanel result={currentResult} selectedBlock={selectedBlock} lang={lang} />
-                  <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
+                  <ResultActions
+                    results={sessionResults}
+                    currentResult={currentResult}
+                    lang={lang}
+                    accessToken={googleAuthState.isSignedIn ? googleAuthState.accessToken : undefined}
+                    onSignInRequired={isGoogleConfigured ? googleSignIn : undefined}
+                  />
                 </div>
               </div>
 
@@ -478,6 +505,16 @@ export default function App() {
           result={regionOCRDialog.result}
           lang={lang}
           onClose={() => setRegionOCRDialog(null)}
+        />
+      )}
+      {showBatchDrive && googleAuthState.accessToken && (
+        <BatchFromDrivePanel
+          lang={lang}
+          accessToken={googleAuthState.accessToken}
+          batchState={batchState}
+          onStartBatch={startBatch}
+          onCancel={cancelBatch}
+          onClose={() => { setShowBatchDrive(false); resetBatch() }}
         />
       )}
     </div>

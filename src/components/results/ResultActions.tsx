@@ -1,23 +1,31 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { OCRResult } from '../../types/ocr'
 import { downloadText, copyToClipboard } from '../../utils/textExport'
+import { GoogleDriveButton } from '../gdrive/GoogleDriveButton'
+import { SaveAllToDriveButton } from '../gdrive/SaveAllToDriveButton'
 
 interface ResultActionsProps {
   results: OCRResult[]
   currentResult: OCRResult | null
   lang: 'ja' | 'en'
+  accessToken?: string | null
+  onSignInRequired?: () => void
 }
 
-export function ResultActions({ results, currentResult, lang }: ResultActionsProps) {
+export function ResultActions({ results, currentResult, lang, accessToken, onSignInRequired }: ResultActionsProps) {
   const [copied, setCopied] = useState(false)
   const [includeFileName, setIncludeFileName] = useState(false)
   const [ignoreNewlines, setIgnoreNewlines] = useState(false)
 
-  const applyOptions = (text: string) =>
-    ignoreNewlines ? text.replace(/\n/g, '') : text
+  const applyOptions = useCallback((text: string) =>
+    ignoreNewlines ? text.replace(/\n/g, '') : text,
+    [ignoreNewlines]
+  )
 
-  const buildText = (result: OCRResult) =>
-    applyOptions(includeFileName ? `=== ${result.fileName} ===\n${result.fullText}` : result.fullText)
+  const buildText = useCallback((result: OCRResult) =>
+    applyOptions(includeFileName ? `=== ${result.fileName} ===\n${result.fullText}` : result.fullText),
+    [includeFileName, applyOptions]
+  )
 
   const handleCopy = async () => {
     const text = currentResult ? buildText(currentResult) : ''
@@ -42,6 +50,7 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
   }
 
   const disabled = !currentResult
+  const showDrive = accessToken !== undefined && onSignInRequired !== undefined
 
   return (
     <div className="result-actions">
@@ -68,10 +77,29 @@ export function ResultActions({ results, currentResult, lang }: ResultActionsPro
         <button className="btn btn-secondary" onClick={handleDownload} disabled={disabled}>
           {lang === 'ja' ? 'ダウンロード' : 'Download'}
         </button>
+        {showDrive && (
+          <GoogleDriveButton
+            text={currentResult ? buildText(currentResult) : ''}
+            fileName={currentResult?.fileName ?? 'ocr'}
+            lang={lang}
+            accessToken={accessToken ?? null}
+            onSignInRequired={onSignInRequired!}
+            disabled={disabled}
+          />
+        )}
         {results.length > 1 && (
           <button className="btn btn-secondary" onClick={handleDownloadAll}>
             {lang === 'ja' ? '全てダウンロード' : 'Download All'}
           </button>
+        )}
+        {showDrive && results.length > 1 && (
+          <SaveAllToDriveButton
+            results={results}
+            buildText={buildText}
+            lang={lang}
+            accessToken={accessToken ?? null}
+            onSignInRequired={onSignInRequired!}
+          />
         )}
       </div>
     </div>

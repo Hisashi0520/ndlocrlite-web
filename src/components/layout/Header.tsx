@@ -1,4 +1,5 @@
 import type { Language } from '../../i18n'
+import type { GoogleAuthState } from '../../utils/googleAuth'
 
 interface HeaderProps {
   lang: Language
@@ -8,9 +9,17 @@ interface HeaderProps {
   onLogoClick: () => void
   onStartOCR?: () => void
   canStartOCR?: boolean
+  googleAuthState?: GoogleAuthState
+  onGoogleSignIn?: () => void
+  onGoogleSignOut?: () => void
+  isGoogleConfigured?: boolean
 }
 
-export function Header({ lang, onToggleLanguage, onOpenSettings, onOpenHistory, onLogoClick, onStartOCR, canStartOCR }: HeaderProps) {
+export function Header({
+  lang, onToggleLanguage, onOpenSettings, onOpenHistory, onLogoClick,
+  onStartOCR, canStartOCR,
+  googleAuthState, onGoogleSignIn, onGoogleSignOut, isGoogleConfigured,
+}: HeaderProps) {
   return (
     <header className="header">
       <button className="header-title" onClick={onLogoClick}>
@@ -24,6 +33,22 @@ export function Header({ lang, onToggleLanguage, onOpenSettings, onOpenHistory, 
           <button className="btn btn-primary btn-start-ocr" onClick={onStartOCR}>
             {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
           </button>
+        )}
+        {isGoogleConfigured && (
+          googleAuthState?.isSignedIn ? (
+            <div className="google-auth-indicator">
+              <span className="google-auth-email" title={googleAuthState.userEmail ?? ''}>
+                {googleAuthState.userEmail ?? 'Google'}
+              </span>
+              <button className="btn-link" onClick={onGoogleSignOut}>
+                {lang === 'ja' ? '解除' : 'Disconnect'}
+              </button>
+            </div>
+          ) : (
+            <button className="btn btn-google" onClick={onGoogleSignIn}>
+              {lang === 'ja' ? 'Google ドライブ接続' : 'Connect Drive'}
+            </button>
+          )
         )}
         <button className="btn-icon" onClick={onOpenHistory} title={lang === 'ja' ? '処理履歴' : 'History'}>
           📋
