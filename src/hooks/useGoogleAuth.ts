@@ -22,13 +22,16 @@ export function useGoogleAuth() {
 
   // Load GIS script on mount
   useEffect(() => {
+    console.log('[GoogleAuth] CLIENT_ID:', CLIENT_ID ? 'set' : 'NOT SET')
     if (!CLIENT_ID) return
     loadGisScript()
       .then(() => {
+        console.log('[GoogleAuth] GIS loaded, initializing token client...')
         tokenClientRef.current = initTokenClient(
           CLIENT_ID,
           // success callback
           async (response) => {
+            console.log('[GoogleAuth] Token response:', response.error ?? 'success')
             if (response.error) {
               signInResolveRef.current = null
               return
@@ -45,19 +48,22 @@ export function useGoogleAuth() {
             signInResolveRef.current = null
           },
           // error callback
-          () => {
+          (err) => {
+            console.error('[GoogleAuth] Error callback:', err)
             signInResolveRef.current = null
           }
         )
         setGisReady(true)
+        console.log('[GoogleAuth] Token client ready')
       })
-      .catch(() => {
-        // GIS script failed to load
+      .catch((err) => {
+        console.error('[GoogleAuth] GIS script failed to load:', err)
       })
   }, [])
 
   const signIn = useCallback((): Promise<void> => {
     return new Promise<void>((resolve) => {
+      console.log('[GoogleAuth] signIn called, tokenClient:', tokenClientRef.current ? 'ready' : 'null')
       if (!tokenClientRef.current) {
         resolve()
         return

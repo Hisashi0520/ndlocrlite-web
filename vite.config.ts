@@ -23,10 +23,9 @@ export default defineConfig({
   },
 
   server: {
-    // SharedArrayBuffer用のCOOP/COEPヘッダー（onnxruntime-webのマルチスレッド推論に必要）
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'credentialless',
-    },
+    // 開発時はCOOP/COEPヘッダーを外す（Google Identity Servicesスクリプトとの互換性のため）
+    // ONNX Runtime WebはSharedArrayBuffer無しでもシングルスレッドで動作する
+    // 本番環境ではnetlify.tomlでcredentiallessを設定
+    headers: {},
   },
 })

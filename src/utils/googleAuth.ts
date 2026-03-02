@@ -22,13 +22,14 @@ export function loadGisScript(): Promise<void> {
   gisLoadPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
-    script.crossOrigin = 'anonymous'
     script.async = true
     script.onload = () => {
+      console.log('[GIS] Script loaded successfully')
       gisLoaded = true
       resolve()
     }
-    script.onerror = () => {
+    script.onerror = (e) => {
+      console.error('[GIS] Script failed to load', e)
       gisLoadPromise = null
       reject(new Error('Failed to load Google Identity Services'))
     }
